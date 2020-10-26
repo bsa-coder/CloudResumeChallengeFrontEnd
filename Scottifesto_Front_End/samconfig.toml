@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "scottifesto-visit"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-ydm05bj840po"
+s3_prefix = "scottifesto-visit"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
