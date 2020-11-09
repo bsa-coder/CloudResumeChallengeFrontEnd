@@ -9,12 +9,12 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-  env:
-    NEW_HTML: false
-    NEW_CSS: false
-    NEW_JS: false
-    CHANGED_FILES: ""
-    INDEX_NAME: ""
+env:
+  NEW_HTML: false
+  NEW_CSS: false
+  NEW_JS: false
+  CHANGED_FILES: ""
+  INDEX_NAME: ""
     
 jobs:
 #   job1:
