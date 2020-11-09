@@ -34,3 +34,11 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test the date
+        run: |
+          echo the date is ${{ steps.date.outputs.date }}
+
+    
