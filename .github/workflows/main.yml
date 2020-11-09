@@ -1,6 +1,6 @@
-# This is a basic workflow to help you get started with Actions
+# this is a basic workflow
 
-name: CI
+name: CI and CD
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
@@ -9,36 +9,334 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: get the date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
-
-      # Runs a single command using the runners shell
-      - name: test the date
-        run: |
-          echo the date is ${{ steps.date.outputs.date }}
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: test the date
-        run: |
-          echo the date is ${{ steps.date.outputs.date }}
-
+env:
+  NEW_HTML: false
+  NEW_CSS: false
+  NEW_JS: false
+  CHANGED_FILES: ""
+  INDEX_NAME: ""
     
+jobs:
+#   job1:
+#     runs-on: ubuntu-latest
+# #     needs: [build]
+#     # Map a step output to a job output
+#     outputs:
+#       junk: ${{ steps.step1.outputs.testj }}
+#       output1: ${{ steps.step1.outputs.test }}
+#       output2: ${{ steps.step2.outputs.test }}
+#       matrix1: ${{ steps.step1.outputs.matrix1 }}
+#       matrix2: ${{ steps.step3.outputs.matrix2 }}
+#     steps:
+#     - name: step1name
+#       id: step1
+#       run: |
+#         echo "::set-output name=test::hello"
+#         echo "::set-output name=testj::hello"
+#         echo "::set-output name=matrix1::{\"\"IndexDocument\"\": { \"\"Suffix\"\": \"\"${{ needs.check_html.outputs.html_file }}\"\" },\"\"ErrorDocument\"\": { \"\"Key\"\": \"\"error.html\"\"}}"
+#         echo "CHANGED_FILES={\\\"IndexDocument\\\": { \\\"Suffix\\\": \\\"${{ needs.check_html.outputs.html_file }}\\\" },\\\"ErrorDocument\\\": { \\\"Key\\\": \\\"error.html\\\"}}" >> $GITHUB_ENV
+#     - name: step2name
+#       id: step2
+#       run: |
+#         echo "::set-output name=test::world"
+#         echo changed files = ${{ env.CHANGED_FILES }}
+# #        echo "CHANGED_FILES=step2" >> $GITHUB_ENV
+#     - id: step3
+#       run: |
+#         echo needs ${{needs.job1.outputs.junk}} ${{needs.job1.outputs.output1}} ${{needs.job1.outputs.output2}}
+#         echo steps ${{steps.job1.outputs.junk}} ${{steps.job1.outputs.output1}} ${{steps.job1.outputs.output2}}
+#         echo changed files = ${{ env.CHANGED_FILES }}
+#         echo "::set-output name=matrix2::${{ toJson(env.CHANGED_FILES) }}"
+#        echo "CHANGED_FILES=step3" >> $GITHUB_ENV
+#   job2:
+#     runs-on: ubuntu-latest
+#     needs: job1
+#     steps:
+#       - name: job2stepname
+#         run: |
+#           echo needs ${{needs.job1.outputs.junk}} ${{needs.job1.outputs.output1}} ${{needs.job1.outputs.output2}}
+#           echo raw1 = ${{needs.job1.outputs.matrix1}}
+#           echo raw2 = ${{needs.job1.outputs.matrix2}}
+#           echo changed files = ${{ env.CHANGED_FILES }}
+#       - name: job2step2
+#         run: |
+#           echo job2step2 changed files = ${{ env.CHANGED_FILES }}
+# #          echo steps fromJson = ${{fromJson(steps.job1.outputs.matrix1)}}
+
+
+  get-file-changes:
+    runs-on: ubuntu-latest
+    
+    
+    outputs:
+      theChangedFiles: ${{steps.get_file_changes.outputs.files }}
+    steps:
+    - name: Get file changes
+      id: get_file_changes
+      uses: trilom/file-changes-action@v1.2.3
+      with:
+        output: ‘ ‘
+        fileOutput: ' '
+    - name: Echo file changes
+      run: |
+        echo Changed Files: ${{steps.get_file_changes.outputs.files }}
+        cat $HOME/files.txt
+        cat $HOME/files_modified.txt
+        cat $HOME/files_added.txt
+        cat $HOME/files_removed.txt
+        echo '${{ steps.get_file_changes.outputs.files}}'
+        echo '${{ steps.get_file_changes.outputs.files_modified}}'
+        echo '${{ steps.get_file_changes.outputs.files_added}}'
+        echo '${{ steps.get_file_changes.outputs.files_removed}}'
+
+
+
+
+
+    - name: check the results yml
+      if: contains(steps.get_file_changes.outputs.files, 'yml')
+      run: |
+        echo yml Files: ${{steps.get_file_changes.outputs.files }}
+    - name: check the results html
+      if: contains(steps.get_file_changes.outputs.files, 'ResumeScottAlexander.html')
+      run: |
+        echo html Files: ${{steps.get_file_changes.outputs.files }}
+        echo "NEW_HTML=true" >> $GITHUB_ENV
+
+
+  copy-files-to-s3:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out the master repo
+      uses: actions/checkout@master
+    - name: Use docker to sync the REPO with the S3
+      uses: docker://amazon/aws-cli:2.0.7
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
+      with:
+          args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude Resume*.html --recursive
+#           args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude * --include *.css --include *.html --include *.js
+
+  copy-html-to-s3:
+    runs-on: ubuntu-latest
+    needs: get-file-changes
+    outputs:
+      new_index: ${{ steps.new_index.outputs.new_index }}
+    steps:
+    - name: Get current date
+      if: env.NEW_HTML == true
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
+    - name: Test with environment variables
+      if: env.NEW_HTML == true
+      run: |
+        echo $L_TAG_NAME - $L_RELEASE_NAME
+        echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
+      env:
+        L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
+        L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
+    - name: Set index name
+      if: env.NEW_HTML == true
+      id: new_index
+      run: |
+        echo "::set-output name=new_index::ResumeScottAlexander-${{ steps.date.outputs.date }}.html"
+    - name: Check out the master repo
+      if: env.NEW_HTML == true
+      uses: actions/checkout@master
+    - name: Use docker to sync the REPO with the S3
+      if: env.NEW_HTML == true
+      uses: docker://amazon/aws-cli:2.0.7
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
+      with:
+          args: s3 cp ResumeScottAlexander.html s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.INDEX_NAME }} --exclude * --include Resume*.html
+#           args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude * --include *.css --include *.html --include *.js
+
+#   check_html:
+#     runs-on: ubuntu-latest
+#     needs: [get-file-changes]
+#     outputs:
+#       html_file: ${{steps.create_web_config.outputs.newhtml }}
+#     steps:
+#     - name: Check for new HTML
+#       id: check_for_html
+#       if: contains(steps.get_file_changes.outputs.files, '.yml')
+#       run: |
+#         echo "NEW_HTML = true" >> $GITHUB_ENV
+#         echo output: ${{steps.get_file_changes.outputs.files }}
+        
+#     - name: Create website configuration
+#       id: create_web_config
+#       if: ${{ env.NEW_HTML }}
+#       run: |
+#         echo NEW_HTML is ${{ env.NEW_HTML }} in create
+#         echo "::set-output name=newhtml::mysite.html"
+# #        echo "::set-output name=newconfig::${{ fromJSON('{'IndexDocument': {'Suffix':$html_file}}) }}"
+
+#   make_config_output:
+#     needs: [check_html]
+#     runs-on: ubuntu-latest
+#     outputs:
+#       matrix: ${{ steps.set-matrix.outputs.matrix }}
+#       matrix1: ${{ steps.set-matrix.outputs.matrix1 }}
+#       matrix2: ${{ steps.step2.outputs.matrix2 }}
+#     steps:
+#     - id: set-matrix
+#       run: |
+#         echo "CHANGED_FILES={\\\"IndexDocument\\\": { \\\"Suffix\\\": \\\"${{ needs.check_html.outputs.html_file }}\\\" },\\\"ErrorDocument\\\": { \\\"Key\\\": \\\"error.html\\\"}}" >> $GITHUB_ENV
+#     - name: step2name
+#       id: step2
+#       run: |
+#         echo "::set-output name=matrix2::${{ toJson(env.CHANGED_FILES) }}"
+
+
+
+
+
+#   make_newconfig_json:
+#     needs: [make_config_output, check_html]
+#     runs-on: ubuntu-latest
+#     outputs:
+#       web_config: ${{steps.do_the_work.outputs.newconfig }}
+#     steps:
+#       - id: do_the_work
+#         run: |
+#           echo matrix is ${{needs.make_config_output.outputs.matrix}}
+#           echo matrix1 is ${{needs.make_config_output.outputs.matrix1}}
+#           echo matrix2 is ${{needs.check_html.outputs.matrix2}}
+#           echo matrix json is ${{toJson(needs.make_config_output.outputs.matrix)}}
+#           echo "::set-output name=newconfig::${{needs.make_config_output.outputs.matrix1}}"
+      
+#   load_newconfig:
+#     needs: make_newconfig_json
+#     runs-on: ubuntu-latest
+#     steps:
+#     - run: |
+#         echo "the web config is ${{needs.make_newconfig_json.outputs.web_config}}"
+      
+#   show_outputs:
+#     runs-on: ubuntu-latest
+#     needs: [get-file-changes, check_html, make_newconfig_json]
+#     steps:
+#     - name: Show results of create
+#       id: show_results2
+#       run: |
+#         echo ${{ env.NEW_HTML }} after create
+#         echo html is ${{needs.check_html.outputs.html_file }}
+#         echo config is ${{needs.make_newconfig_json.outputs.web_config }}
+#         echo output: ${{needs.get-file-changes.outputs.theChangedFiles}}
+      
+
+  update_s3_site:
+    runs-on: ubuntu-latest
+    needs: [copy-html-to-s3]
+    steps:
+    - name: Use docker to Update website configuration
+      if: env.NEW_HTML == true
+      uses: docker://amazon/aws-cli:2.0.7
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
+      with:
+          args: s3 website ${{ secrets.AWS_S3_BUCKET }} --index-document ${{needs.copy-html-to-s3.outputs.new_index}}
+#           args: s3api put-bucket-website --bucket ${{ secrets.AWS_S3_BUCKET }} --website-configuration ${{needs.check_html.outputs.matrix2}}
+
+
+
+
+
+
+
+#   copy-new-html:
+#     if: contains(${{ env.CHANGED_FILES }}, '.html')
+#     needs: [get-file-changes]
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: verify new html file exists
+#         run: echo upload it to s3
+#       - name: create json with website config
+#         run: echo make json
+#       - name: update s3 website
+#         run: echo do the update
+
+#   runLint:
+#     runs-on: ubuntu-latest
+#     needs: job2
+#     outputs:
+#       theChangedFiles: ${{steps.get_file_changes.outputs.files }}
+#     steps:
+#     - name: Get file changes
+#       id: get_file_changes
+#       uses: trilom/file-changes-action@v1.2.3
+#       with:
+#         output: ‘ ‘
+#     - name: Echo file changes
+#       run: |
+#         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
+
+#     - name: Run lint
+#       env:
+#         INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       uses: samuelmeuli/lint-action@v1.4.0
+#       with:
+#         rubocop: true
+#         auto_fix: true
+#         rubocop_args: -R —fail-level C —display-only-fail-level-offenses ${{ steps.get_file_changes.outputs.files }}
+#         rubocop_command_prefix: bundle exec
+
+#   checkout:
+#     runs-on: ubuntu-latest
+#     needs: [job2]
+# #     if: contains(${{ steps.get_file_changes.outputs.files }}, .html)
+#     outputs:
+#       indexfile: ${{ steps.get_file_changes.outputs.files }}
+# #       passedCheckout: ${{ passedit }}
+#     steps:
+#     - name: Echo file changes
+#       run: |
+#         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
+
+#   cypress-run:
+#     if: ${{ env.NEW_CSS }}
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Set the value
+#         id: step_one
+#         run: |
+#           echo 'JSON_RESPONSE<<EOF' >> $GITHUB_ENV
+#           curl https://httpbin.org/json >> $GITHUB_ENV
+#           echo 'EOF' >> $GITHUB_ENV
+#       - name: use value of JSON_RESPONSE
+#         id: step_two
+#         run: |
+#           echo $JSON_RESPONSE
+#       - name: Checkout 🛎
+#         uses: actions/checkout@v2
+#       - name: Git commands to get files and stuff
+#         run: |
+#           git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
+#           git fetch --no-tags --depth=1 origin ${{ github.head_ref }}
+#           echo Fetching done
+
+#           git checkout -b baseref ${{ github.base_ref }}
+#           CHANGED_SPECS=$(git diff --name-only origin/master);
+#           echo $CHANGED_SPECS
+#           echo should have printed changed_specs1
+
+#           git checkout -b headref ${{ github.head_ref }}
+#           CHANGED_SPECS=$(git diff --name-only origin/master);
+#           echo CHANGED_SPECS
+#           echo should have printed changed_specs2
+          
+#           git checkout ${{ github.sha }}
+#           echo Checkouts done
+          
+#           echo 'CHANGED_SPECS<<EOF' >> $GITHUB_ENV
+#           git diff --name-only origin/master >> $GITHUB_ENV
+#           echo 'EOF' >> $GITHUB_ENV
+
