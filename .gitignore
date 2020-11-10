@@ -1,6 +1,6 @@
-#bsa stuff
-.DS_Store
+# bsa stuff
 old stuff/*
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
