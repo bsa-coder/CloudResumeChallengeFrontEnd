@@ -68,6 +68,7 @@ jobs:
     
     outputs:
       theChangedFiles: ${{steps.get_file_changes.outputs.files }}
+      new_html: ${{steps.check_for_html.outputs.new_html}}
     steps:
     - name: Get file changes
       id: get_file_changes
@@ -78,14 +79,11 @@ jobs:
     - name: Echo file changes
       run: |
         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
-        cat $HOME/files.txt
-        cat $HOME/files_modified.txt
-        cat $HOME/files_added.txt
-        cat $HOME/files_removed.txt
         echo all: '${{ steps.get_file_changes.outputs.files}}'
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
         echo new: '${{ steps.get_file_changes.outputs.files_added}}'
         echo rem: '${{ steps.get_file_changes.outputs.files_removed}}'
+        echo "::set-output name=new_html::false"
 
 
 
@@ -95,17 +93,24 @@ jobs:
       if: contains(steps.get_file_changes.outputs.files, 'yml')
       run: |
         echo yml Files: ${{steps.get_file_changes.outputs.files }}
+        echo "NEW_HTML=true" >> $GITHUB_ENV
     - name: check the results html
+      id: check_for_html
       if: contains(steps.get_file_changes.outputs.files, 'ResumeScottAlexander.html')
       run: |
         echo html Files: ${{steps.get_file_changes.outputs.files }}
         echo "NEW_HTML=true" >> $GITHUB_ENV
+        run: echo "::set-output name=new_html::true"
 
 
   copy-files-to-s3:
     runs-on: ubuntu-latest
     needs: [get-file-changes]
     steps:
+    - name: test an output
+      run: |
+        echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+        echo new html is ${{needs.get-file-changes.outputs.new_html}}
     - name: Check out the master repo
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
@@ -127,11 +132,11 @@ jobs:
     - name: are there html files
       run: echo new_html = ${{ env.NEW_HTML }} index_name = ${{ env.INDEX_NAME }}
     - name: Get current date
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       id: date
       run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
     - name: Test with environment variables
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       run: |
         echo $L_TAG_NAME - $L_RELEASE_NAME
         echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
@@ -139,15 +144,15 @@ jobs:
         L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
         L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
     - name: Set index name
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       id: new_index
       run: |
         echo "::set-output name=new_index::ResumeScottAlexander-${{ steps.date.outputs.date }}.html"
     - name: Check out the master repo
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       uses: docker://amazon/aws-cli:2.0.7
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -234,10 +239,10 @@ jobs:
 
   update_s3_site:
     runs-on: ubuntu-latest
-    needs: [copy-html-to-s3]
+    needs: [copy-html-to-s3, get-file-changes]
     steps:
     - name: Use docker to Update website configuration
-      if: env.NEW_HTML == true
+      if: needs.get-file-changes.outputs.new_html == true
       uses: docker://amazon/aws-cli:2.0.7
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
