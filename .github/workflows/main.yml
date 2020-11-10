@@ -78,10 +78,6 @@ jobs:
     - name: Echo file changes
       run: |
         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
-        cat $HOME/files.txt
-        cat $HOME/files_modified.txt
-        cat $HOME/files_added.txt
-        cat $HOME/files_removed.txt
         echo all: '${{ steps.get_file_changes.outputs.files}}'
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
         echo new: '${{ steps.get_file_changes.outputs.files_added}}'
@@ -95,6 +91,7 @@ jobs:
       if: contains(steps.get_file_changes.outputs.files, 'yml')
       run: |
         echo yml Files: ${{steps.get_file_changes.outputs.files }}
+        echo "NEW_HTML=true" >> $GITHUB_ENV
     - name: check the results html
       if: contains(steps.get_file_changes.outputs.files, 'ResumeScottAlexander.html')
       run: |
@@ -106,6 +103,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-file-changes]
     steps:
+    - name: test an output
+      run: the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
     - name: Check out the master repo
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
