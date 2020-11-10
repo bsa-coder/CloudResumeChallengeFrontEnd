@@ -65,8 +65,9 @@ jobs:
   get-file-changes:
     runs-on: ubuntu-latest    
     outputs:
-      theChangedFiles: ${{steps.get_file_changes.outputs.files }}
+      theChanges: ${{steps.get_file_changes.outputs.files }}
       new_html: ${{steps.check_for_html.outputs.new_html}}
+      new_html2: ${{steps.check_for_yaml.outputs.new_html}}
     steps:
     - name: Get file changes
       id: get_file_changes
@@ -82,27 +83,26 @@ jobs:
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
         echo new: '${{ steps.get_file_changes.outputs.files_added}}'
         echo rem: '${{ steps.get_file_changes.outputs.files_removed}}'
-        echo "NEW_HTML=false" >> $GITHUB_ENV
-        echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+        echo the files are ... ${{needs.get-file-changes.outputs.theChanges}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
         echo env NEW_HTML= ${{env.NEW_HTML}}
 
     - name: check the results yml DUMMY ACTION TO BE REMOVED
+      id: check_for_yaml
       if: contains(steps.get_file_changes.outputs.files, 'yml')
       run: |
-        echo yml Files: ${{steps.get_file_changes.outputs.files }}
-        echo "NEW_HTML=true" >> $GITHUB_ENV
+        echo "::set-output name=new_html::true"
+        echo trilom files: ${{steps.get_file_changes.outputs.files }}
+        echo duplic files: ${{needs.get-file-changes.outputs.theChanges}}
         
     - name: check the results html
       id: check_for_html
       if: contains(steps.get_file_changes.outputs.files, 'ResumeScottAlexander.html')
       run: |
-        echo html Files: ${{steps.get_file_changes.outputs.files }}
-        echo "NEW_HTML=true" >> $GITHUB_ENV
         echo "::set-output name=new_html::true"
-        echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+        echo trilom files: ${{steps.get_file_changes.outputs.files }}
+        echo duplic files: ${{needs.get-file-changes.outputs.theChanges}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{env.NEW_HTML}}
 
 
   copy-files-to-s3:
@@ -111,9 +111,9 @@ jobs:
     steps:
     - name: test an output
       run: |
-        echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+        echo the files are ... ${{needs.get-file-changes.outputs.theChanges}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{env.NEW_HTML}}
+        echo new html2 is ${{needs.get-file-changes.outputs.new_html2}}
     - name: Check out the master repo
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
@@ -123,7 +123,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
       with:
-          args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude Resume*.html
+          args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude *
+#           args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude Resume*.html
 
 #   copy-html-to-s3:
 #     runs-on: ubuntu-latest
