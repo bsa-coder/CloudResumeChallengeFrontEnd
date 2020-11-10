@@ -65,7 +65,7 @@ jobs:
   get-file-changes:
     runs-on: ubuntu-latest    
     outputs:
-      theChanges: ${{steps.get_file_changes.outputs.files }}
+      theChanges: ${{steps.echo_files.outputs.files }}
       new_html: ${{steps.check_for_html.outputs.new_html}}
       new_html2: ${{steps.check_for_yaml.outputs.new_html}}
     steps:
@@ -77,7 +77,9 @@ jobs:
         fileOutput: ' '
         
     - name: Echo file changes
+      id: echo_files
       run: |
+        echo "::set-output name=files::${{steps.get_file_changes.outputs.files}}
         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
         echo all: '${{ steps.get_file_changes.outputs.files}}'
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
@@ -85,7 +87,6 @@ jobs:
         echo rem: '${{ steps.get_file_changes.outputs.files_removed}}'
         echo the files are ... ${{needs.get-file-changes.outputs.theChanges}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{env.NEW_HTML}}
 
     - name: check the results yml DUMMY ACTION TO BE REMOVED
       id: check_for_yaml
