@@ -79,7 +79,7 @@ jobs:
     - name: Echo file changes
       id: echo_files
       run: |
-        echo "::set-output name=files::${{steps.get_file_changes.outputs.files}}
+        echo "::set-output name=files::${{steps.get_file_changes.outputs.files}}"
         echo Changed Files: ${{steps.get_file_changes.outputs.files }}
         echo all: '${{ steps.get_file_changes.outputs.files}}'
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
