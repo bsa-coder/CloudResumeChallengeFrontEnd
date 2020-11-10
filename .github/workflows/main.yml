@@ -130,7 +130,7 @@ jobs:
       new_index: ${{ steps.new_index.outputs.new_index }}
     steps:
     - name: are there html files
-      run: echo new_html = ${{ env.NEW_HTML }} index_name = ${{ env.INDEX_NAME }}
+      run: echo new html is ${{needs.get-file-changes.outputs.new_html}} index_name = ${{ env.INDEX_NAME }}
     - name: Get current date
       if: needs.get-file-changes.outputs.new_html == true
       id: date
