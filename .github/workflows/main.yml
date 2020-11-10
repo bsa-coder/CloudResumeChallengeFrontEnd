@@ -134,13 +134,13 @@ jobs:
       new_index: ${{ steps.new_index.outputs.new_index }}
     steps:
     - name: are there html files
-      run: echo new html is ${{needs.get-file-changes.outputs.new_html}} index_name = ${{ env.INDEX_NAME }}
+      run: echo new html is ${{needs.get-file-changes.outputs.new_html}} new html2 is ${{needs.get-file-changes.outputs.new_html2}} index_name = ${{ env.INDEX_NAME }}
     - name: Get current date
-      if: needs.get-file-changes.outputs.new_html == true
+#       if: needs.get-file-changes.outputs.new_html == true
       id: date
       run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
     - name: Test with environment variables
-      if: needs.get-file-changes.outputs.new_html == true
+#       if: needs.get-file-changes.outputs.new_html == true
       run: |
         echo $L_TAG_NAME - $L_RELEASE_NAME
         echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
@@ -148,9 +148,10 @@ jobs:
         L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
         L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
     - name: Set index name
-      if: needs.get-file-changes.outputs.new_html == true
+#       if: needs.get-file-changes.outputs.new_html == true
       id: new_index
       run: |
+        echo INDEX_NAME=${{env.INDEX_NAME}}
         echo "::set-output name=new_index::ResumeScottAlexander-${{ steps.date.outputs.date }}.html"
     - name: Check out the master repo
       if: needs.get-file-changes.outputs.new_html == true
