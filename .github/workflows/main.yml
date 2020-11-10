@@ -145,7 +145,7 @@ jobs:
         echo $L_TAG_NAME - $L_RELEASE_NAME - $L_HAVE_HTML
         echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
       env:
-        L_HAVE_HTML: $(contains(needs.get_file_changes.outputs.theChanges, 'ResumeScottAlexander.html'))
+        L_HAVE_HTML: contains(needs.get_file_changes.outputs.theChanges, 'ResumeScottAlexander.html')
         L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
         L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
     - name: Set index name
