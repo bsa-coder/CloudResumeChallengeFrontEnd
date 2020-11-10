@@ -107,7 +107,9 @@ jobs:
     needs: [get-file-changes]
     steps:
     - name: test an output
-      run: echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+      run: |
+        echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
+        echo new html is ${{needs.get-file-changes.outputs.new_html}}
     - name: Check out the master repo
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
