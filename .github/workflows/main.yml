@@ -100,7 +100,7 @@ jobs:
       run: |
         echo html Files: ${{steps.get_file_changes.outputs.files }}
         echo "NEW_HTML=true" >> $GITHUB_ENV
-        run: echo "::set-output name=new_html::true"
+        echo "::set-output name=new_html::true"
 
 
   copy-files-to-s3:
