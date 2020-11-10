@@ -83,6 +83,7 @@ jobs:
         echo mod: '${{ steps.get_file_changes.outputs.files_modified}}'
         echo new: '${{ steps.get_file_changes.outputs.files_added}}'
         echo rem: '${{ steps.get_file_changes.outputs.files_removed}}'
+        echo "::set-output name=new_html::false"
 
 
 
