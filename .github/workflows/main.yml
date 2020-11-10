@@ -85,7 +85,7 @@ jobs:
         echo "NEW_HTML=false" >> $GITHUB_ENV
         echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{NEW_HTML}}
+        echo env NEW_HTML= ${{env.NEW_HTML}}
 
     - name: check the results yml DUMMY ACTION TO BE REMOVED
       if: contains(steps.get_file_changes.outputs.files, 'yml')
@@ -102,7 +102,7 @@ jobs:
         echo "::set-output name=new_html::true"
         echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{NEW_HTML}}
+        echo env NEW_HTML= ${{env.NEW_HTML}}
 
 
   copy-files-to-s3:
@@ -113,7 +113,7 @@ jobs:
       run: |
         echo the files are ... ${{needs.get-file-changes.outputs.theChangedFiles}}
         echo new html is ${{needs.get-file-changes.outputs.new_html}}
-        echo env NEW_HTML= ${{NEW_HTML}}
+        echo env NEW_HTML= ${{env.NEW_HTML}}
     - name: Check out the master repo
       uses: actions/checkout@master
     - name: Use docker to sync the REPO with the S3
