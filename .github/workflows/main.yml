@@ -127,43 +127,43 @@ jobs:
           args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude *
 #           args: s3 sync . s3://${{ secrets.AWS_S3_BUCKET }}/ --exclude Resume*.html
 
-#   copy-html-to-s3:
-#     runs-on: ubuntu-latest
-#     needs: [get-file-changes, copy-files-to-s3]
-#     outputs:
-#       new_index: ${{ steps.new_index.outputs.new_index }}
-#     steps:
-#     - name: are there html files
-#       run: echo new html is ${{needs.get-file-changes.outputs.new_html}} index_name = ${{ env.INDEX_NAME }}
-#     - name: Get current date
-#       if: needs.get-file-changes.outputs.new_html == true
-#       id: date
-#       run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
-#     - name: Test with environment variables
-#       if: needs.get-file-changes.outputs.new_html == true
-#       run: |
-#         echo $L_TAG_NAME - $L_RELEASE_NAME
-#         echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
-#       env:
-#         L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
-#         L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
-#     - name: Set index name
-#       if: needs.get-file-changes.outputs.new_html == true
-#       id: new_index
-#       run: |
-#         echo "::set-output name=new_index::ResumeScottAlexander-${{ steps.date.outputs.date }}.html"
-#     - name: Check out the master repo
-#       if: needs.get-file-changes.outputs.new_html == true
-#       uses: actions/checkout@master
-#     - name: Use docker to sync the REPO with the S3
-#       if: needs.get-file-changes.outputs.new_html == true
-#       uses: docker://amazon/aws-cli:2.0.7
-#       env:
-#           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#           AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
-#       with:
-#           args: s3 cp ResumeScottAlexander.html s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.INDEX_NAME }} --exclude * --include Resume*.html
+  copy-html-to-s3:
+    runs-on: ubuntu-latest
+    needs: [get-file-changes, copy-files-to-s3]
+    outputs:
+      new_index: ${{ steps.new_index.outputs.new_index }}
+    steps:
+    - name: are there html files
+      run: echo new html is ${{needs.get-file-changes.outputs.new_html}} index_name = ${{ env.INDEX_NAME }}
+    - name: Get current date
+      if: needs.get-file-changes.outputs.new_html == true
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d-%T')"
+    - name: Test with environment variables
+      if: needs.get-file-changes.outputs.new_html == true
+      run: |
+        echo $L_TAG_NAME - $L_RELEASE_NAME
+        echo "INDEX_NAME=ResumeScottAlexander-${{ steps.date.outputs.date }}.html" >> $GITHUB_ENV
+      env:
+        L_TAG_NAME: ResumeScottAlexander-${{ steps.date.outputs.date }}.html
+        L_RELEASE_NAME: release-${{ steps.date.outputs.date }}
+    - name: Set index name
+      if: needs.get-file-changes.outputs.new_html == true
+      id: new_index
+      run: |
+        echo "::set-output name=new_index::ResumeScottAlexander-${{ steps.date.outputs.date }}.html"
+    - name: Check out the master repo
+      if: needs.get-file-changes.outputs.new_html == true
+      uses: actions/checkout@master
+    - name: Use docker to sync the REPO with the S3
+      if: needs.get-file-changes.outputs.new_html == true
+      uses: docker://amazon/aws-cli:2.0.7
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
+      with:
+          args: s3 cp ResumeScottAlexander.html s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.INDEX_NAME }} --exclude * --include Resume*.html
 
 #   update_s3_site:
 #     runs-on: ubuntu-latest
